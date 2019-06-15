@@ -6,8 +6,11 @@
 #include "funcdata.h"
 
 //
-// System call support for Plan 9
+// System call support for Plan 9 (actually, harvey)
 //
+// Trap # in AX, args in DI SI DX R10 R8 R9, return in AX DX
+// Note that this differs from "standard" ABI convention, which
+// would pass 4th arg in CX, not R10.
 
 //func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err string)
 //func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err string)
@@ -16,17 +19,16 @@
 
 #define SYS_ERRSTR 41	/* from zsysnum_plan9.go */
 
-TEXT	·Syscall(SB),NOSPLIT,$168-64
+TEXT	·Syscall(SB),NOSPLIT,$0-56
 	NO_LOCAL_POINTERS
 	CALL	runtime·entersyscall(SB)
-	MOVQ	trap+0(FP), BP	// syscall entry
-	// copy args down
-	LEAQ	a1+8(FP), SI
-	LEAQ	sysargs-160(SP), DI
-	CLD
-	MOVSQ
-	MOVSQ
-	MOVSQ
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	$0, R10
+	MOVQ	$0, R8
+	MOVQ	$0, R9
+	MOVQ	trap+0(FP), AX	// syscall entry
 	SYSCALL
 	MOVQ	AX, r1+32(FP)
 	MOVQ	$0, r2+40(FP)
@@ -58,20 +60,17 @@ copyresult3:
 
 	RET
 
-TEXT	·Syscall6(SB),NOSPLIT,$168-88
+// func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr)
+TEXT	·Syscall6(SB),NOSPLIT,$168-80
 	NO_LOCAL_POINTERS
 	CALL	runtime·entersyscall(SB)
-	MOVQ	trap+0(FP), BP	// syscall entry
-	// copy args down
-	LEAQ	a1+8(FP), SI
-	LEAQ	sysargs-160(SP), DI
-	CLD
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	a4+32(FP), R10
+	MOVQ	a5+40(FP), R8
+	MOVQ	a6+48(FP), R9
+	MOVQ	trap+0(FP), AX	// syscall entry
 	SYSCALL
 	MOVQ	AX, r1+56(FP)
 	MOVQ	$0, r2+64(FP)
@@ -103,37 +102,34 @@ copyresult4:
 
 	RET
 
+// func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2, err uintptr)
 TEXT ·RawSyscall(SB),NOSPLIT,$0-56
-	MOVQ	trap+0(FP), BP	// syscall entry
-	// slide args down on top of system call number
-	LEAQ	a1+8(FP), SI
-	LEAQ	trap+0(FP), DI
-	CLD
-	MOVSQ
-	MOVSQ
-	MOVSQ
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	$0, R10
+	MOVQ	$0, R8
+	MOVQ	$0, R9
+	MOVQ	trap+0(FP), AX	// syscall entry
 	SYSCALL
-	MOVQ	AX, r1+32(FP)
-	MOVQ	AX, r2+40(FP)
-	MOVQ	AX, err+48(FP)
+	MOVQ	AX, r1+30(SP)
+	MOVQ	AX, r2+48(SP)
+	MOVQ	AX, err+56(SP)
 	RET
 
+// func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr)
 TEXT	·RawSyscall6(SB),NOSPLIT,$0-80
-	MOVQ	trap+0(FP), BP	// syscall entry
-	// slide args down on top of system call number
-	LEAQ	a1+8(FP), SI
-	LEAQ	trap+0(FP), DI
-	CLD
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	a4+32(FP), R10
+	MOVQ	a5+40(FP), R8
+	MOVQ	a6+48(FP), R9
+	MOVQ	trap+0(FP), AX	// syscall entry
 	SYSCALL
 	MOVQ	AX, r1+56(FP)
-	MOVQ	AX, r2+64(FP)
-	MOVQ	AX, err+72(FP)
+	MOVQ	DX, r2+64(FP)
+	MOVQ	$0, err+72(FP)
 	RET
 
 #define SYS_SEEK 39	/* from zsysnum_plan9.go */
