@@ -35,7 +35,7 @@ func exits(msg *byte)
 //go:noescape
 func brk_(addr unsafe.Pointer) int32
 
-func sleep(ms int32) int32
+func sleep(ms int64) int32
 
 func rfork(flags int32) int32
 
@@ -43,7 +43,7 @@ func rfork(flags int32) int32
 func plan9_semacquire(addr *uint32, block int32) int32
 
 //go:noescape
-func plan9_tsemacquire(addr *uint32, ms int32) int32
+func plan9_tsemacquire(addr *uint32, ms int64) int32
 
 //go:noescape
 func plan9_semrelease(addr *uint32, count int32) int32
@@ -320,7 +320,7 @@ func osyield() {
 
 //go:nosplit
 func usleep(µs uint32) {
-	ms := int32(µs / 1000)
+	ms := int64(µs / 1000)
 	if ms == 0 {
 		ms = 1
 	}
@@ -424,7 +424,7 @@ func semacreate(mp *m) {
 func semasleep(ns int64) int {
 	_g_ := getg()
 	if ns >= 0 {
-		ms := timediv(ns, 1000000, nil)
+		ms := int64(timediv(ns, 1000000, nil))
 		if ms == 0 {
 			ms = 1
 		}

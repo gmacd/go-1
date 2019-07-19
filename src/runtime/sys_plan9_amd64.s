@@ -15,10 +15,10 @@ TEXT runtime·open(SB),NOSPLIT,$0
 	RET
 
 TEXT runtime·pread(SB),NOSPLIT,$0
-	MOVL	a0+0(FP), DI
-	MOVQ	a1+8(FP), SI
-	MOVL	a2+16(FP), DX
-	MOVQ	a3+24(FP), R10
+	MOVL	fd+0(FP), DI
+	MOVQ	buf+8(FP), SI
+	MOVL	nbytes+16(FP), DX
+	MOVQ	offset+24(FP), R10
 	MOVQ	$50, AX
 	SYSCALL
 	MOVL	AX, ret+32(FP)
@@ -26,63 +26,62 @@ TEXT runtime·pread(SB),NOSPLIT,$0
 
 TEXT runtime·pwrite(SB),NOSPLIT,$0
 	MOVL	fd+0(FP), DI
-	MOVQ	p+8(FP), SI
-	MOVL	n+16(FP), DX
-	MOVQ	a4+24(FP), R10
+	MOVQ	buf+8(FP), SI
+	MOVL	nbytes+16(FP), DX
+	MOVQ	offset+24(FP), R10
 	MOVQ	$51, AX
 	SYSCALL
 	MOVL	AX, ret+32(FP)
 	RET
 
 // int64 seek(int32, int64, int32)
-// Convenience wrapper around _seek, the actual system call.
 TEXT runtime·seek(SB),NOSPLIT,$32
 	MOVL	fd+0(FP), DI
-	MOVQ	off+4(FP), SI
-	MOVL	whence+12(FP), DX
+	MOVQ	offset+8(FP), SI
+	MOVL	whence+16(FP), DX
 	MOVQ	$39, AX
 	SYSCALL
-	MOVQ	AX, ret+16(FP)
+	MOVQ	AX, ret+24(FP)
 	RET
 
 TEXT runtime·closefd(SB),NOSPLIT,$0
-	MOVL	a0+0(FP), DI
+	MOVL	fd+0(FP), DI
 	MOVQ	$4, AX
 	SYSCALL
 	MOVL	AX, ret+8(FP)
 	RET
 
 TEXT runtime·exits(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
+	MOVQ	msg+0(FP), DI
 	MOVQ	$8, AX
 	SYSCALL
 	RET
 
 TEXT runtime·brk_(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
+	MOVQ	addr+0(FP), DI
 	MOVQ	$24, AX
 	SYSCALL
 	MOVL	AX, ret+8(FP)
 	RET
 
 TEXT runtime·sleep(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
+	MOVQ	ms+0(FP), DI
 	MOVQ	$17, AX
 	SYSCALL
 	MOVL	AX, ret+8(FP)
 	RET
 
 TEXT runtime·plan9_semacquire(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
-	MOVL	a1+8(FP), SI
+	MOVQ	addr+0(FP), DI
+	MOVL	block+8(FP), SI
 	MOVQ	$37, AX
 	SYSCALL
 	MOVL	AX, ret+16(FP)
 	RET
 
 TEXT runtime·plan9_tsemacquire(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
-	MOVQ	a1+8(FP), SI
+	MOVQ	addr+0(FP), DI
+	MOVQ	ms+8(FP), SI
 	MOVQ	$52, AX
 	SYSCALL
 	MOVL	AX, ret+16(FP)
@@ -115,29 +114,29 @@ TEXT runtime·walltime(SB),NOSPLIT,$8-12
 	RET
 
 TEXT runtime·notify(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
+	MOVQ	fn+0(FP), DI
 	MOVQ	$28, AX
 	SYSCALL
-	MOVQ	AX, ret+8(FP)
+	MOVL	AX, ret+8(FP)
 	RET
 
 TEXT runtime·noted(SB),NOSPLIT,$0
-	MOVL	a0+0(FP), DI
+	MOVL	mode+0(FP), DI
 	MOVQ	$29, AX
 	SYSCALL
 	MOVL	AX, ret+8(FP)
 	RET
 
 TEXT runtime·plan9_semrelease(SB),NOSPLIT,$0
-	MOVQ	a0+0(FP), DI
-	MOVL	a1+8(FP), SI
+	MOVQ	addr+0(FP), DI
+	MOVL	count+8(FP), SI
 	MOVQ	$38, AX
 	SYSCALL
 	MOVL	AX, ret+16(FP)
 	RET
 
 TEXT runtime·rfork(SB),NOSPLIT,$0
-	MOVL	a0+0(FP), DI
+	MOVL	flags+0(FP), DI
 	MOVQ	$19, AX
 	SYSCALL
 	MOVL	AX, ret+8(FP)
@@ -239,7 +238,7 @@ TEXT runtime·setfpmasks(SB),NOSPLIT,$8
 // void errstr(int8 *buf, int32 len)
 TEXT errstr<>(SB),NOSPLIT,$0
 	MOVQ	buf+0(FP), DI
-	MOVQ	len+8(FP), SI
+	MOVL	len+8(FP), SI
 	MOVQ    $41, AX
 	SYSCALL
 	RET

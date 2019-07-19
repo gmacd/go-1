@@ -133,6 +133,11 @@ func Main(arch *sys.Arch, theArch Arch) {
 
 	objabi.Flagparse(usage)
 
+	if ctxt.Arch.Family == sys.AMD64 && objabi.GOOS == "plan9" {
+		*flagHeadType = "linux"
+		*FlagRound = 0x200000
+	}
+
 	switch *flagHeadType {
 	case "":
 	case "windowsgui":

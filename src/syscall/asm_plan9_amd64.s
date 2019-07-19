@@ -19,7 +19,7 @@
 
 #define SYS_ERRSTR 41	/* from zsysnum_plan9.go */
 
-TEXT	·Syscall(SB),NOSPLIT,$0-56
+TEXT	·Syscall(SB),NOSPLIT,$168-64
 	NO_LOCAL_POINTERS
 	CALL	runtime·entersyscall(SB)
 	MOVQ	a1+8(FP), DI
@@ -37,8 +37,9 @@ TEXT	·Syscall(SB),NOSPLIT,$0-56
 
 	LEAQ	errbuf-128(SP), AX
 	MOVQ	AX, sysargs-160(SP)
-	MOVQ	$128, sysargs1-152(SP)
-	MOVQ	$SYS_ERRSTR, BP
+	LEAQ	errbuf-128(SP), DI
+	MOVQ	$128, SI
+	MOVQ	$SYS_ERRSTR, AX
 	SYSCALL
 	CALL	runtime·exitsyscall(SB)
 	MOVQ	sysargs-160(SP), AX
@@ -61,7 +62,7 @@ copyresult3:
 	RET
 
 // func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr)
-TEXT	·Syscall6(SB),NOSPLIT,$168-80
+TEXT	·Syscall6(SB),NOSPLIT,$168-88
 	NO_LOCAL_POINTERS
 	CALL	runtime·entersyscall(SB)
 	MOVQ	a1+8(FP), DI
@@ -79,8 +80,9 @@ TEXT	·Syscall6(SB),NOSPLIT,$168-80
 
 	LEAQ	errbuf-128(SP), AX
 	MOVQ	AX, sysargs-160(SP)
-	MOVQ	$128, sysargs1-152(SP)
-	MOVQ	$SYS_ERRSTR, BP
+	LEAQ	errbuf-128(SP), DI
+	MOVQ	$128, SI
+	MOVQ	$SYS_ERRSTR, AX
 	SYSCALL
 	CALL	runtime·exitsyscall(SB)
 	MOVQ	sysargs-160(SP), AX
@@ -130,43 +132,4 @@ TEXT	·RawSyscall6(SB),NOSPLIT,$0-80
 	MOVQ	AX, r1+56(FP)
 	MOVQ	DX, r2+64(FP)
 	MOVQ	$0, err+72(FP)
-	RET
-
-#define SYS_SEEK 39	/* from zsysnum_plan9.go */
-
-//func seek(placeholder uintptr, fd int, offset int64, whence int) (newoffset int64, err string)
-TEXT ·seek(SB),NOSPLIT,$48-56
-	NO_LOCAL_POINTERS
-	LEAQ	newoffset+32(FP), AX
-	MOVQ	AX, placeholder+0(FP)
-
-	// copy args down
-	LEAQ	placeholder+0(FP), SI
-	LEAQ	sysargs-40(SP), DI
-	CLD
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVSQ
-	MOVQ	$SYS_SEEK, BP	// syscall entry
-	SYSCALL
-
-	CMPL	AX, $-1
-	JNE	ok6
-	MOVQ	AX, newoffset+32(FP)
-
-	CALL	syscall·errstr(SB)
-	MOVQ	SP, SI
-	JMP	copyresult6
-
-ok6:
-	LEAQ	·emptystring(SB), SI
-
-copyresult6:
-	LEAQ	err+40(FP), DI
-
-	CLD
-	MOVSQ
-	MOVSQ
 	RET
