@@ -35,14 +35,23 @@ TEXT	·Syscall(SB),NOSPLIT,$168-64
 	CMPL	AX, $-1
 	JNE	ok3
 
-	LEAQ	errbuf-128(SP), AX
+	// if this was an error, get the errstr.
+	// if errstr is empty, not an error.
+	LEAQ	errbuf-128(SP), AX	// null terminated buffer for errstr
+	MOVB	$0, (AX)
 	MOVQ	AX, sysargs-160(SP)
 	LEAQ	errbuf-128(SP), DI
 	MOVQ	$128, SI
 	MOVQ	$SYS_ERRSTR, AX
 	SYSCALL
-	CALL	runtime·exitsyscall(SB)
+	CALL	runtime·exitsyscall(SB)		// really?
+
 	MOVQ	sysargs-160(SP), AX
+	//MOVB	(AX), DI
+	//TESTB	DI, DI
+	//JZ ok3
+
+	//CALL	runtime·exitsyscall(SB)
 	MOVQ	AX, errbuf-168(SP)
 	CALL	runtime·gostring(SB)
 	LEAQ	str-160(SP), SI
@@ -132,4 +141,53 @@ TEXT	·RawSyscall6(SB),NOSPLIT,$0-80
 	MOVQ	AX, r1+56(FP)
 	MOVQ	DX, r2+64(FP)
 	MOVQ	$0, err+72(FP)
+	RET
+
+#define SYS_SEEK 39	/* from zsysnum_plan9.go */
+
+//func seek(placeholder uintptr, fd int, offset int64, whence int) (newoffset int64, err string)
+TEXT ·seek(SB),NOSPLIT,$168-56
+	NO_LOCAL_POINTERS
+	CALL	runtime·entersyscall(SB)
+	MOVQ	fd+8(FP), DI
+	MOVQ	offset+16(FP), SI
+	MOVQ	whence+24(FP), DX
+	MOVQ	$0, R10
+	MOVQ	$0, R8
+	MOVQ	$0, R9
+	MOVQ	$SYS_SEEK, AX
+	SYSCALL
+	MOVQ	AX, newoffset+32(FP)
+	CMPL	AX, $-1
+	JNE	ok3
+
+	// if this was an error, get the errstr.
+	// if errstr is empty, not an error.
+	LEAQ	errbuf-128(SP), AX	// null terminated buffer for errstr
+	MOVB	$0, (AX)
+	MOVQ	AX, sysargs-160(SP)
+	LEAQ	errbuf-128(SP), DI
+	MOVQ	$128, SI
+	MOVQ	$SYS_ERRSTR, AX
+	SYSCALL
+
+	MOVQ	sysargs-160(SP), AX
+	MOVB	(AX), DI
+	TESTB	DI, DI
+	JZ ok3
+
+	CALL	runtime·exitsyscall(SB)
+	MOVQ	AX, errbuf-168(SP)
+	CALL	runtime·gostring(SB)
+	LEAQ	str-160(SP), SI
+
+	LEAQ	err+40(FP), DI
+	CLD
+	MOVSQ
+	MOVSQ
+	RET
+
+ok3:
+	MOVQ	$0, err+40(FP)
+	CALL	runtime·exitsyscall(SB)
 	RET
